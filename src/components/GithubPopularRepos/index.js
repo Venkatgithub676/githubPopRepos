@@ -14,53 +14,111 @@ const languageFiltersData = [
 
 // Write your code here
 
+const apiConstants = {
+  initial: 'INITIAL',
+  success: 'SUCCESS',
+  failure: 'FAILURE',
+  loading: 'LOADING',
+}
+
 class GithubPopularRepos extends Component {
-  state = {data: [], isLoading: true, activeTabId: languageFiltersData[0].id}
+  state = {
+    data: [],
+    status: apiConstants.initial,
+    activeTabId: languageFiltersData[0].id,
+  }
 
   componentDidMount() {
     this.getData()
   }
 
   getData = async () => {
+    this.setState({status: apiConstants.loading})
     const {activeTabId} = this.state
     const apiUrl = `https://apis.ccbp.in/popular-repos?language=${activeTabId}`
-    const options = {
-      method: 'GET',
-    }
-    const response = await fetch(apiUrl, options)
-    const data = await response.json()
 
-    const updatedData = data.popular_repos.map(each => ({
-      name: each.name,
-      id: each.id,
-      issuesCount: each.issues_count,
-      forksCount: each.forks_count,
-      starsCount: each.stars_count,
-      avatarUrl: each.avatar_url,
-    }))
-    this.setState({updatedData, isLoading: false})
+    const response = await fetch(apiUrl)
+    if (response.ok) {
+      const fetchedData = await response.json()
+
+      const updatedData = fetchedData.popular_repos.map(each => ({
+        name: each.name,
+        id: each.id,
+        issuesCount: each.issues_count,
+        forksCount: each.forks_count,
+        starsCount: each.stars_count,
+        avatarUrl: each.avatar_url,
+      }))
+      this.setState({data: updatedData, status: apiConstants.success})
+    } else {
+      this.setState({status: apiConstants.failure})
+    }
   }
 
-  render() {
-    const {isLoading, updatedData} = this.state
+  onClickBtns = id => {
+    this.setState({activeTabId: id}, this.getData)
+  }
 
-    const res = isLoading ? (
-      <div data-testid="loader">
-        <Loader type="ThreeDots" color="#0284c7" height={80} width={80} />
-      </div>
-    ) : (
+  loadingView = () => (
+    <div data-testid="loader">
+      <Loader type="ThreeDots" color="#0284c7" height={80} width={80} />
+    </div>
+  )
+
+  repoView = () => {
+    const {data} = this.state
+    return (
       <ul className="repo-item-con">
-        {updatedData.map(each => (
-          <RepositoryItem each={each} />
+        {data.map(each => (
+          <RepositoryItem each={each} key={each.id} />
         ))}
       </ul>
     )
+  }
+
+  failureView = () => (
+    <div className="failure-con">
+      <img
+        src="https://assets.ccbp.in/frontend/react-js/api-failure-view.png"
+        alt="failure view"
+        className="failure-img"
+      />
+    </div>
+  )
+
+  render() {
+    const {status, activeTabId} = this.state
+    let res
+    switch (status) {
+      case apiConstants.loading:
+        res = this.loadingView()
+        console.log('loading view')
+        break
+      case apiConstants.success:
+        res = this.repoView()
+        console.log('repo view')
+        break
+
+      case apiConstants.failure:
+        res = this.failureView()
+        console.log('failure view')
+        break
+      default:
+        res = null
+        break
+    }
+
     return (
       <div className="git-hub-pop-repos-con">
         <h1 className="pop-heading">Popular</h1>
         <ul className="git-hub-pop-ul-con">
           {languageFiltersData.map(each => (
-            <LanguageFilterItem each={each} key={each.id} />
+            <LanguageFilterItem
+              onClickBtns={this.onClickBtns}
+              each={each}
+              key={each.id}
+              isActive={activeTabId === each.id}
+            />
           ))}
         </ul>
         {res}

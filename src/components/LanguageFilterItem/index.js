@@ -3,11 +3,21 @@
 import './index.css'
 
 const LanguageFilterItem = props => {
-  const {each} = props
+  const {each, onClickBtns, isActive} = props
   const {id, language} = each
+
+  const borderChange = isActive ? 'border-change' : ''
+
+  const onClickLangBtns = () => {
+    onClickBtns(id)
+  }
   return (
     <li>
-      <button type="button" className="list-btns">
+      <button
+        type="button"
+        onClick={onClickLangBtns}
+        className={`list-btns ${borderChange}`}
+      >
         {language}
       </button>
     </li>
